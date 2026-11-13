@@ -1,0 +1,66 @@
+@startuml architecture-container
+title BrewLite – Kiến trúc phân lớp (Container & Component view)
+skinparam shadowing false
+skinparam defaultFontSize 12
+
+actor "Customer" as C
+actor "Nhân viên quầy /\nQuản lý" as S
+
+rectangle "Next.js PWA – apps/web" as WEB #E8F0FE {
+  component "Pages (App Router)\n/menu · /products/[id] · /cart\n/checkout · /orders" as W_PAGES
+  component "UI Components\n(mobile-first)" as W_UI
+  component "Cart store\n(client state + localStorage)" as W_CART
+  component "API client\n(fetch + JWT + Idempotency-Key)" as W_API
+  component "Service Worker\n(PWA, cache menu)" as W_SW
+}
+
+rectangle "NestJS API – apps/api (modular monolith)" as API #EAF7EA {
+  rectangle "Cross-cutting" as CC #FFFFFF {
+    component "ConfigModule\n(validate env)" as M_CFG
+    component "Logger (pino)\n+ Exception filter" as M_LOG
+    component "ValidationPipe\n(class-validator)" as M_VAL
+    component "JwtAuthGuard\n+ RolesGuard" as M_GUARD
+    component "HealthModule\nGET /health" as M_HEALTH
+  }
+  rectangle "Domain modules" as DM #FFFFFF {
+    component "AuthModule\n/auth/register · /auth/login" as M_AUTH
+    component "UsersModule" as M_USER
+    component "ProductsModule\nGET /products(/:id)" as M_PROD
+    component "OrdersModule\nPOST /orders · GET /orders(/:id)\nPATCH /orders/:id/status" as M_ORD
+    component "PaymentsModule\nPOST /payments\n(PaymentGateway interface)" as M_PAY
+    component "PromotionsModule" as M_PROMO
+    component "LoyaltyModule" as M_LOY
+  }
+  rectangle "Data access" as DA #FFFFFF {
+    component "TypeORM repositories\n+ migrations/seed" as M_ORM
+  }
+}
+
+component "Mock Payment Gateway\n(Ví/Thẻ mô phỏng)\n<<adapter in PaymentsModule>>" as GW
+database "PostgreSQL 16" as DB
+
+C --> W_PAGES : HTTPS
+S --> W_PAGES : HTTPS
+W_PAGES --> W_UI
+W_PAGES --> W_CART
+W_PAGES --> W_API
+W_SW .. W_PAGES
+W_API --> M_GUARD : REST/JSON + Bearer JWT
+M_GUARD --> M_AUTH
+M_GUARD --> M_PROD
+M_GUARD --> M_ORD
+M_GUARD --> M_PAY
+M_AUTH --> M_USER
+M_ORD --> M_PROD : kiểm tra/trừ tồn kho
+M_ORD --> M_PROMO
+M_ORD --> M_LOY
+M_PAY --> M_ORD : cập nhật trạng thái
+M_PAY --> GW : charge(idempotencyKey)
+M_USER --> M_ORM
+M_PROD --> M_ORM
+M_ORD --> M_ORM
+M_PAY --> M_ORM
+M_PROMO --> M_ORM
+M_LOY --> M_ORM
+M_ORM --> DB : SQL (TCP 5432)
+@enduml

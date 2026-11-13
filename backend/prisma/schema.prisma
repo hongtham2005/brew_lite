@@ -1,0 +1,136 @@
+// [TV1/TV6] Thực thể tối thiểu theo đề (Mục 12.2)
+generator client {
+  provider = "prisma-client-js"
+  output   = "../src/generated/prisma/client"
+}
+
+datasource db {
+  provider = "postgresql"
+}
+
+enum OrderStatus {
+  PENDING
+  PAID
+  PAYMENT_FAILED
+  PREPARING
+  READY
+  COMPLETED
+  CANCELLED
+}
+
+enum Size {
+  S
+  M
+  L
+}
+
+model Product {
+  id          Int          @id @default(autoincrement())
+  name        String
+  price       Int
+  imageUrl    String
+  items       OrderItem[]
+  recipes     RecipeItem[] 
+}
+
+model Ingredient {
+  id        Int          @id @default(autoincrement())
+  name      String       @unique // Tên nguyên liệu (vd: Sữa tươi, Hạt cà phê)
+  unit      String               // Đơn vị (ml, gram, cái...)
+  stock     Float                // Tồn kho hiện tại (vd: 5000 ml)
+  version   Int          @default(1) // Optimistic Locking cho nguyên liệu (Task 10)
+  recipes   RecipeItem[]
+  createdAt DateTime     @default(now())
+  updatedAt DateTime     @updatedAt
+}
+
+// 2. Bảng công thức: 1 sản phẩm cần những nguyên liệu gì, định lượng bao nhiêu cho 1 ly
+model RecipeItem {
+  id           Int        @id @default(autoincrement())
+  productId    Int
+  product      Product    @relation(fields: [productId], references: [id], onDelete: Cascade)
+  ingredientId Int
+  ingredient   Ingredient @relation(fields: [ingredientId], references: [id], onDelete: Restrict)
+  quantity     Float      // Định lượng cho 1 ly (vd: 150 (ml sữa), 20 (g cà phê))
+
+  @@unique([productId, ingredientId])
+}
+
+
+model User {
+  id            Int      @id @default(autoincrement())
+  username      String   @default("")
+  email         String   @unique
+  passwordHash  String
+  loyaltyPoints Int      @default(0)
+  createdAt     DateTime @default(now())
+  updatedAt     DateTime @updatedAt
+  orders Order[]
+}
+
+model Order {
+  id        Int         @id @default(autoincrement())
+  userId    Int
+  status    OrderStatus @default(PENDING)
+  customerName String?
+  total     Int
+  createdAt DateTime    @default(now())
+  updatedAt DateTime    @updatedAt
+
+  user           User        @relation(fields: [userId], references: [id], onDelete: Cascade)
+  items    OrderItem[]
+  payment  Payment?
+  promoCodeId   Int?
+  discountAmount Int      @default(0)     // Số tiền đã giảm
+  promoCode     PromoCode? @relation(fields: [promoCodeId], references: [id])
+}
+
+model OrderItem {
+  id        Int    @id @default(autoincrement())
+  orderId   Int
+  productId Int
+  size      Size
+  qty       Int
+  lineTotal Int
+  topping   String?
+
+  order   Order   @relation(fields: [orderId], references: [id], onDelete: Cascade)
+  product Product @relation(fields: [productId], references: [id])
+}
+
+model Payment {
+  id             Int           @id @default(autoincrement())
+  orderId        Int           @unique
+  idempotencyKey String        @unique
+  amount         Int
+  method         String
+  status         String        @default("PENDING") // PENDING, SUCCESS, FAILED
+  transactionId  String?
+  paymentUrl     String?       // URL redirect thanh toán
+  confirmationEmailSentAt DateTime?
+  confirmationEmailSendingAt DateTime?
+  confirmationTokenHash String? @unique
+  confirmationTokenExpiresAt DateTime?
+  confirmedAt                DateTime?
+  createdAt      DateTime      @default(now())
+
+  order Order @relation(fields: [orderId], references: [id], onDelete: Cascade)
+}
+
+model PromoCode {
+  id            Int       @id @default(autoincrement())
+  code          String    @unique          // Ví dụ: BREW10, SUMMER20
+  description   String?
+  discountType  String    // "PERCENT" | "FIXED"
+  discountValue Int       // 10 (10%) hoặc 15000 (15k)
+  minOrderAmount Int      @default(0)     // Đơn tối thiểu để dùng mã
+  maxUses       Int?                      // null = không giới hạn
+  usedCount     Int       @default(0)
+  isActive      Boolean   @default(true)
+  startsAt      DateTime?
+  expiresAt     DateTime?
+  createdAt     DateTime  @default(now())
+  updatedAt     DateTime  @updatedAt
+
+  orders        Order[]
+}

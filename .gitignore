@@ -1,0 +1,12 @@
+node_modules/
+dist/
+.next/
+.env
+*.log
+.DS_Store
+.vscode/
+.idea/
+coverage/
+pgdata/
+/backend/src/generated/prisma/
+*.tsbuildinfo

@@ -1,0 +1,45 @@
+@startuml UML_Deployment
+skinparam shadowing false
+skinparam defaultFontSize 12
+skinparam noteBackgroundColor #FFF9C4
+skinparam noteBorderColor #999999
+left to right direction
+
+node "**Client Device**" as CLIENT {
+  artifact "Web Browser / PWA\n(Next.js UI)" as BROWSER
+}
+
+node "**CI/CD Pipeline**\n(GitHub Actions)" as CICD {
+  component "Build & Test\n(GitHub Workflow)" as WORKFLOW
+}
+
+cloud "Production Environment" as PROD {
+
+  node "**Frontend Hosting**\n(Vercel / Render CDN)" as FE_HOST {
+    component "Next.js Frontend\n(Static & SSR)" as FRONTEND
+  }
+
+  node "**Backend Hosting**\n(Render / Railway / VPS Docker)" as BE_HOST {
+    component "NestJS API Container\n(Node.js Runtime)\n[Port: 3000]" as API
+  }
+
+  node "**Database Hosting**\n(Managed DB / Docker Volume)" as DB_HOST {
+    database "PostgreSQL DB\n[Port: 5432]" as DB
+    folder "Persistent Storage\n(Data Volume)" as VOLUME
+  }
+}
+
+BROWSER --> FRONTEND : HTTPS (Port 443)
+FRONTEND --> API : REST API / JSON over HTTPS
+API --> DB : Internal TCP / SSL (Port 5432)
+DB --> VOLUME : Lưu trữ dữ liệu bền vững
+
+WORKFLOW --> FRONTEND : Deploy Static Frontend
+WORKFLOW --> API : Push Docker Image / Deploy API
+
+note top of API
+  - Health Check: /api/health
+  - Secrets: JWT_SECRET, VNPay Keys
+  - Logs: Docker stdout / Cloud Logs
+end note
+@enduml

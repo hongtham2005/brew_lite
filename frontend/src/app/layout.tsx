@@ -1,30 +1,20 @@
+import type { ReactNode } from 'react';
+import type { Metadata } from 'next';
 import './globals.css';
 import FloatingCart from '@/components/cart/FloatingCart';
 import SiteHeader from '@/components/shared/SiteHeader';
 
-export const metadata = {
+export const metadata: Metadata = {
   title: 'BrewLite',
   description: 'Ứng dụng đặt và thanh toán đồ uống không dùng tiền mặt',
 };
 
-export default function RootLayout({
-  children,
-}: {
-  children: React.ReactNode;
-}) {
+export default function RootLayout({ children }: { children: ReactNode }) {
   return (
     <html lang="vi" suppressHydrationWarning>
-      <head />
-      <body className="bg-gray-50 text-gray-800 antialiased relative min-h-screen flex flex-col">
-        
+      <body className="relative flex min-h-screen flex-col bg-gray-50 text-gray-800 antialiased">
         <SiteHeader />
-
-        {/* Nội dung các trang */}
-        <main className="flex-1">
-          {children}
-        </main>
-        
-        {/* Giỏ hàng lơ lửng */}
+        <main className="flex-1">{children}</main>
         <FloatingCart />
       </body>
     </html>

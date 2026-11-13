@@ -1,6 +1,7 @@
 import { NotFoundException } from '@nestjs/common';
 import { LoyaltyService } from '../loyalty/loyalty.service';
 import { PrismaService } from '../prisma/prisma.service';
+import { InventoryService } from '../inventory/inventory.service';
 import { OrdersService } from './orders.service';
 
 describe('OrdersService order ownership', () => {
@@ -8,6 +9,7 @@ describe('OrdersService order ownership', () => {
   const service = new OrdersService(
     { order: { findFirst } } as unknown as PrismaService,
     {} as LoyaltyService,
+    {} as InventoryService,
   );
 
   beforeEach(() => {

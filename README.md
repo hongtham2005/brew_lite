@@ -1,113 +1,170 @@
-# BrewLite - Ứng dụng đặt cà phê không dùng tiền mặt
+# ☕ BrewLite
 
-Bài tập lớn môn **Công nghệ Phần mềm** - Khoa CNTT, Đại học Sài Gòn (HK I, 2026-2027).
+Ứng dụng đặt đồ uống mobile-first/PWA — **Assignment 2: Requirements to Deployment**
+Môn **Công nghệ Phần mềm** · Khoa CNTT · Đại học Sài Gòn · HK I, 2026–2027
 
-> BrewLite giúp khách hàng đặt và thanh toán đồ uống không dùng tiền mặt chỉ trong vài chạm, giảm thời gian xếp hàng và nhận đơn nhanh tại quầy.
+**Luồng nghiệp vụ:** Xem menu → Chọn tùy chọn → Giỏ hàng → Đặt đơn → Thanh toán → Theo dõi đơn
 
-## Công nghệ
+## 🔗 Liên kết
 
-| Thành phần | Công nghệ |
-|------------|-----------|
-| Frontend   | Next.js (React, TypeScript), TailwindCSS, Zustand |
-| Backend    | NestJS (TypeScript), REST, class-validator, JWT (Passport) |
-| CSDL       | PostgreSQL + Prisma |
-| Thanh toán | VNPay (sandbox, xác minh chữ ký callback) |
-| DevOps     | Docker Compose, Git |
+| Thành phần | URL |
+|---|---|
+| Frontend (production) | _TODO_ |
+| API (production) | _TODO_ |
+| Health check | _TODO_/health |
+| Video demo | _TODO_ |
 
-## Phân công
+## 🧱 Công nghệ
 
-| TV  | Chức năng                  | Task     | Thư mục chính |
-|-----|----------------------------|----------|---------------|
-| TV1 | Infrastructure + Shared    | 1, 9     | `docker-compose.yml`, `backend/prisma/seed.ts`, `frontend/src/components/shared`, `frontend/src/app/layout.tsx` |
-| TV2 | Product Catalog            | 2, 3     | `backend/src/products`, `frontend/src/app/menu` |
-| TV3 | Product Detail             | 4        | `frontend/src/app/products/[id]` |
-| TV4 | Shopping Cart              | 5        | `frontend/src/store`, `frontend/src/app/cart` |
-| TV5 | Authentication             | 7        | `backend/src/auth`, `frontend/src/app/(auth)` |
-| TV6 | Order + Payment + Advanced | 6, 8, 10 | `backend/src/{orders,payments,inventory,promotions,loyalty}`, `frontend/src/app/{checkout,orders}` |
+- **Frontend:** Next.js (mobile-first / PWA)
+- **Backend:** NestJS (module theo domain)
+- **Database:** PostgreSQL (migration + seed)
+- **DevOps:** Docker, Docker Compose, GitHub Actions (CI/CD), GHCR, Render (production)
 
-## Cấu trúc thư mục
+## 📁 Cấu trúc repository
 
 ```
 brewlite/
-├── backend/    # NestJS API (products, auth, orders, payments, inventory, promotions, loyalty)
-├── frontend/   # Next.js (menu, products/[id], cart, auth, checkout, orders)
-├── docs/       # reports (báo cáo từng TV), scrum (backlog, retrospective), diagrams
+├── apps/
+│   ├── web/                 # Next.js mobile-first/PWA
+│   └── api/                 # NestJS
+├── docs/
+│   ├── requirements/        # Task 1: context, SRS, use-case
+│   ├── diagrams/            # Task 2: activity, sequence, class, deployment (.puml + .svg)
+│   ├── architecture/        # Task 3: mô tả kiến trúc + adr/
+│   ├── traceability-matrix.md
+│   └── deployment.md
+├── tests/                   # Integration / E2E
+├── .github/workflows/       # ci.yml, cd.yml
 ├── docker-compose.yml
-└── .env.example
+├── .env.example
+└── README.md
 ```
 
-## Chạy nhanh bằng Docker
+## 📚 Tài liệu
+
+| Task | Tạo phẩm | Vị trí |
+|---|---|---|
+| 1 | Bối cảnh, stakeholder, phạm vi | [`docs/requirements/context-and-scope.md`](docs/requirements/context-and-scope.md) |
+| 1 | SRS (FR/NFR, MoSCoW) | [`docs/requirements/srs.md`](docs/requirements/srs.md) |
+| 1 | Đặc tả use-case đặt & thanh toán | [`docs/requirements/usecase-checkout.md`](docs/requirements/usecase-checkout.md) |
+| 2 | Activity / Sequence / Class diagram | [`docs/diagrams/`](docs/diagrams) |
+| 3.1 | Mô tả kiến trúc | [`docs/architecture/architecture.md`](docs/architecture/architecture.md) |
+| 3.1 | ADR-001 … ADR-009 | [`docs/architecture/adr/`](docs/architecture/adr) |
+| 3.1 | Sơ đồ kiến trúc | [`docs/diagrams/architecture-container.svg`](docs/diagrams/architecture-container.svg) |
+| 3.2 | Deployment diagram | [`docs/diagrams/deployment-production.svg`](docs/diagrams/deployment-production.svg) |
+| — | Ma trận truy vết | [`docs/traceability-matrix.md`](docs/traceability-matrix.md) |
+| — | Triển khai & rollback | [`docs/deployment.md`](docs/deployment.md) |
+
+## ✅ Yêu cầu hệ thống
+
+- Node.js ≥ 20, npm ≥ 10
+- Docker & Docker Compose v2
+- Git
+
+## 🚀 Chạy local
+
+### Cách 1: Docker Compose (khuyến nghị)
 
 ```bash
-Copy-Item .env.example .env
+git clone <repo-url> brewlite && cd brewlite
+cp .env.example .env          # sửa các giá trị cần thiết
 docker compose up --build
 ```
 
-- Frontend: http://localhost:3000
-- Backend: http://localhost:3001
+- Web: http://localhost:3000
+- API: http://localhost:4000
+- Health: http://localhost:4000/health
 
-### Cấu hình VNPay sandbox
-
-Thanh toán sử dụng VNPay sandbox. Sau khi VNPay xác nhận giao dịch, backend gửi email có nút **Xác nhận đơn hàng** tới địa chỉ `PAYMENT_CONFIRMATION_EMAIL`; khách bấm nút để hoàn tất.
-
-- Cấu hình `VNPAY_TMN_CODE`, `VNPAY_HASH_SECRET`, `VNPAY_URL` và `VNPAY_RETURN_URL` theo thông tin merchant sandbox.
-- `PAYMENT_FRONTEND_URL` phải là địa chỉ frontend (mặc định `http://localhost:3000`); `VNPAY_RETURN_URL` là địa chỉ backend nhận trình duyệt quay về (mặc định `http://localhost:3001/payments/vnpay/return`).
-- `MAIL_HOST`, `MAIL_PORT`, `MAIL_USER`, `MAIL_PASS`, `MAIL_FROM` phải cấu hình SMTP để gửi email xác nhận. Với Gmail, dùng App Password.
-- `PAYMENT_CONFIRMATION_EMAIL` là địa chỉ nhận email xác nhận thanh toán; nếu để trống, email được gửi tới địa chỉ tài khoản đặt hàng.
-- Để VNPay gửi IPN server-to-server trong môi trường triển khai, backend phải có URL HTTPS công khai.
-
-Các giá trị trong `.env.example` chỉ là ví dụ. Thay credential bằng thông tin merchant sandbox được cấp trong `.env`; không commit credential thật.
-
-## Chạy local (không Docker)
+### Cách 2: Chạy từng phần
 
 ```bash
-# Backend
-Copy-Item .env.example .env
+# Database
 docker compose up -d db
-cd backend
-npm install
-npx prisma generate
-npx prisma db push
-npx prisma db seed
+
+# API
+cd apps/api
+npm ci
+npm run migration:run          # tạo schema
+npm run seed                   # dữ liệu mẫu
 npm run start:dev
 
-# Frontend (terminal khác)
-cd frontend
-npm install
+# Web (terminal khác)
+cd apps/web
+npm ci
 npm run dev
 ```
 
-## API chính
+## 🧪 Kiểm thử
 
-| Endpoint | Chức năng |
-|----------|-----------|
-| GET /products | Danh sách đồ uống (menu) |
-| GET /products/:id | Chi tiết một sản phẩm |
-| POST /auth/register | Đăng ký |
-| POST /auth/login | Đăng nhập, trả JWT |
-| POST /orders | Tạo đơn (PENDING) |
-| POST /payments | Thanh toán (idempotent, header `Idempotency-Key`) |
-| GET /orders/me | Lịch sử đơn |
+```bash
+# Unit test
+cd apps/api && npm test
+cd apps/web && npm test
 
-Trạng thái đơn: `PENDING -> PAID -> PREPARING -> READY -> COMPLETED` (nhánh ngoại lệ: `PAYMENT_FAILED`, `CANCELLED`).
+# Integration test (API tạo đơn/thanh toán)
+cd tests/integration && npm test
 
-## Quy ước Git
+# End-to-end (menu -> xác nhận đơn)
+cd tests/e2e && npm test
+```
 
-- Nhánh: `main` (ổn định) <- `develop` <- `feature/tvX-<ten-chuc-nang>`
-- Commit: `feat(products): add GET /products`, `fix(cart): ...`, `docs(report): ...`
-- Mỗi Pull Request cần ít nhất 1 thành viên review.
+## 🏗️ Build
 
-## Kế hoạch Sprint
+```bash
+cd apps/api && npm run build
+cd apps/web && npm run build
 
-| Sprint | Mục tiêu | Task |
-|--------|----------|------|
-| 1 | Nền tảng & hiển thị menu | 1, 2, 3, 4 |
-| 2 | Giỏ hàng, đặt đơn, đăng nhập | 5, 6, 7 |
-| 3 | Thanh toán, bàn giao, nghiệp vụ nâng cao | 8, 9, 10 |
+# Docker image
+docker build -t brewlite-api ./apps/api
+docker build -t brewlite-web ./apps/web
+```
 
-## Definition of Done
+## 🔄 CI/CD
 
-- Code chạy được, không lỗi build, đúng tiêu chí chấp nhận.
-- Commit rõ ràng, được review trong nhóm.
-- API có validate đầu vào; UI xử lý loading/lỗi cơ bản.
-- Có hướng dẫn chạy trong README.
+| Pipeline | Kích hoạt | Các bước |
+|---|---|---|
+| **CI** (`ci.yml`) | Mở/cập nhật Pull Request | Install → Lint → Unit Test → Build |
+| **CD** (`cd.yml`) | Push tag `vX.Y.Z` | Lint & Test → Build Docker image → Push registry → Deploy → Smoke test |
+
+- PR **không được merge** nếu lint/test/build thất bại (bật branch protection cho `main`).
+- Image được gắn tag bằng commit SHA và version.
+
+## 🚢 Deploy & Rollback
+
+Chi tiết xem [`docs/deployment.md`](docs/deployment.md).
+
+```bash
+# Deploy: tạo release tag, CD tự chạy
+git tag v1.0.0 && git push origin v1.0.0
+
+# Rollback: Render -> service -> Deploys -> Rollback
+# (hoặc deploy lại image tag ổn định trước đó), rồi kiểm tra
+curl --fail https://<api-url>/health
+```
+
+## 🌿 Quy ước làm việc
+
+Xem [`CONTRIBUTING.md`](CONTRIBUTING.md): chiến lược branch, PR, Conventional Commits, Definition of Done.
+
+## 🔐 Bảo mật
+
+- Không commit `.env`; chỉ commit `.env.example`.
+- Secret production nằm trong GitHub Actions secrets / biến môi trường của nền tảng.
+- Database production không public trực tiếp.
+
+## 🗓️ Tiến độ
+
+- [ ] Task 1 – Khai thác & đặc tả yêu cầu
+- [ ] Task 2 – Mô hình hóa hệ thống
+- [x] Task 3 – Thiết kế kiến trúc (3.1 kiến trúc + ADR, 3.2 deployment diagram)
+- [ ] Task 4 – Sprint 1 (repo, tài liệu, CI, MVP menu)
+- [ ] Task 5 – Sprint 2, CI/CD, production, bàn giao
+
+## 👥 Nhóm thực hiện
+
+| MSSV | Họ tên | Vai trò |
+|---|---|---|
+| | | |
+
+Giảng viên: _TODO_

@@ -85,8 +85,8 @@ docker compose up -d db
 # API
 cd apps/api
 npm ci
-npm run migration:run          # tạo schema
-npm run seed                   # dữ liệu mẫu
+npm run prisma:migrate          # tạo schema
+npm run prisma:seed                   # dữ liệu mẫu
 npm run start:dev
 
 # Web (terminal khác)

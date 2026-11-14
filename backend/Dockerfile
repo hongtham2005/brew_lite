@@ -5,4 +5,4 @@ RUN npm install
 COPY . .
 RUN DATABASE_URL="postgresql://build:build@localhost:5432/build" npx prisma generate && npm run build
 EXPOSE 3001
-CMD ["sh", "-c", "npx prisma db push && npx prisma db seed && npm run start"]
+CMD ["npm", "run", "start:prod"]

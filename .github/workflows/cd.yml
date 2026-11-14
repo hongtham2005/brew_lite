@@ -28,13 +28,23 @@ jobs:
       # 2. Smoke Test / Health Check sau khi deploy (Đợi Render build xong)
       - name: Smoke Test (Health Check)
         run: |
-          echo "Waiting for Render to build and start the service..."
-          sleep 45
-          # Lưu ý: Nếu app của bạn có set global prefix là 'api', hãy đổi thành /api/health
-          response=$(curl -s -o /dev/null -w "%{http_code}" https://brewlite-api-5ec6.onrender.com/health)
-          if [ "$response" -eq 200 ]; then
-            echo "Smoke test passed! /health returned 200 OK."
-          else
-            echo "Smoke test failed with status code: $response"
-            exit 1
-          fi
+          echo "Waiting for Render to build, run migration, and start the service..."
+          URL="https://brewlite-api-5ec6.onrender.com/health"
+          MAX_RETRIES=20
+          DELAY=15
+          
+          for ((i=1; i<=MAX_RETRIES; i++)); do
+            echo "Attempt $i/$MAX_RETRIES: Checking $URL..."
+            response=$(curl -s -o /dev/null -w "%{http_code}" "$URL" || echo "000")
+            
+            if [ "$response" -eq 200 ]; then
+              echo "✅ Smoke test passed! /health returned 200 OK."
+              exit 0
+            fi
+            
+            echo "⏳ Service is still starting up (status: $response). Retrying in ${DELAY}s..."
+            sleep $DELAY
+          done
+          
+          echo "❌ Smoke test failed: Service did not become ready after $((MAX_RETRIES * DELAY)) seconds."
+          exit 1

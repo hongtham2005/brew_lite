@@ -97,7 +97,7 @@ jobs:
           else
             echo "Missing RENDER_DEPLOY_HOOK secret"
             exit 1
-          fi
+          fi   
 
       - name: Smoke Test (Health Check)
         run: |

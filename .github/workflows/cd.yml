@@ -25,11 +25,11 @@ jobs:
             exit 1
           fi
 
-      # 2. Smoke Test / Health Check sau khi deploy (Đợi Render build xong)
+
       - name: Smoke Test (Health Check)
         run: |
           echo "Waiting for Render to build, run migration, and start the service..."
-          URL="https://brewlite-api-5ec6.onrender.com/health"
+          URL="https://brewlite-api-jac6.onrender.com/health"
           MAX_RETRIES=20
           DELAY=15
           

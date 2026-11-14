@@ -34,6 +34,4 @@ COPY --from=builder /app/src/generated ./src/generated
 
 EXPOSE 3001
 
-# Chạy migration bằng DIRECT_URL (cổng 5432) trước, sau đó khởi động app dùng DATABASE_URL (cổng 6543)
-# Chạy migration bằng DIRECT_URL (hoặc DATABASE_URL nếu không có), sau đó bật app
-CMD npx prisma migrate deploy --url="${DIRECT_URL:-$DATABASE_URL}" && node dist/main.js
+CMD DATABASE_URL="${DIRECT_URL:-$DATABASE_URL}" npx prisma migrate deploy && node dist/main.js

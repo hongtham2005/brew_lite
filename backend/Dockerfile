@@ -34,4 +34,4 @@ COPY --from=builder /app/src/generated ./src/generated
 
 EXPOSE 3001
 
-CMD DATABASE_URL="${DIRECT_URL:-$DATABASE_URL}" npx prisma migrate deploy && node dist/main.js
+CMD DATABASE_URL="${DIRECT_URL:-$DATABASE_URL}" npx prisma db push && node dist/main.js

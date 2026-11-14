@@ -10,6 +10,7 @@ config({ path: resolve(process.cwd(), '../.env') });
 config({ path: resolve(process.cwd(), '.env') });
 
 async function bootstrap() {
+  console.log('1. Starting NestJS application...');
   const app = await NestFactory.create(AppModule);
 
   app.useGlobalPipes(
@@ -20,13 +21,13 @@ async function bootstrap() {
   );
 
   app.enableCors();
+  console.log('2. Middleware and CORS configured.');
 
   const port = Number(process.env.PORT) || 3001;
   
-  // Chỉ gọi 1 lần duy nhất với '0.0.0.0' để Render/Docker nhận diện được cổng mở
+  console.log(`3. Attempting to listen on port ${port}...`);
   await app.listen(port, '0.0.0.0');
   
-  console.log(`BrewLite backend is running on port ${port}`);
+  console.log(`🚀 BrewLite backend is successfully running on port ${port}`);
 }
-
 bootstrap();

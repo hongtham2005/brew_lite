@@ -75,7 +75,7 @@ providers: [
 
     prisma.$transaction.mockImplementation(
       (callback: (transaction: typeof tx) => Promise<unknown>) =>
-        callback(tx),
+        callback(tx), 
     );
     loyaltyService.applyPromoCode.mockResolvedValue({
       discountAmount: 0,
@@ -83,6 +83,7 @@ providers: [
     });
   });
 
+  
   it('does not allow concurrent orders to exceed available stock', async () => {
     let releaseReads!: () => void;
     const bothReadsCompleted = new Promise<void>((resolve) => {

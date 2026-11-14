@@ -12,7 +12,7 @@ datasource db {
 enum OrderStatus {
   PENDING
   PAID
-  PAYMENT_FAILED
+  PAYMENT_FAILED 
   PREPARING
   READY
   COMPLETED

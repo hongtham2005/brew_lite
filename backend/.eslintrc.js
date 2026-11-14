@@ -5,7 +5,7 @@ module.exports = {
   extends: ['plugin:@typescript-eslint/recommended'],
   root: true,
   env: { node: true, jest: true },
-  ignorePatterns: ['.eslintrc.js', 'dist'],
+  ignorePatterns: ['.eslintrc.js', 'dist', 'src/generated/**'],
   rules: {
     '@typescript-eslint/no-explicit-any': 'off',
   },

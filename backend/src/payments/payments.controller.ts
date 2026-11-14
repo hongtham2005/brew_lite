@@ -7,7 +7,6 @@ import {
   Res,
   UnauthorizedException,
   UseGuards,
-  Req,
 } from '@nestjs/common';
 import { Response } from 'express';
 import { CurrentUser } from '../auth/decorators/current-user.decorator';

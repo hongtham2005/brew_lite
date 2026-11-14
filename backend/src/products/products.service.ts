@@ -33,7 +33,7 @@ export class ProductsService {
         stock = minServings === Infinity ? 0 : minServings;
       }
 
-      const { recipes, ...rest } = product;
+      const { ...rest } = product;
       return {
         ...rest,
         stock,
@@ -69,7 +69,7 @@ export class ProductsService {
       stock = minServings === Infinity ? 0 : minServings;
     }
 
-    const { recipes, ...rest } = product;
+    const { ...rest } = product;
     return {
       ...rest,
       stock,

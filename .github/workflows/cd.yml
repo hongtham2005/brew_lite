@@ -69,7 +69,7 @@ jobs:
           tags: |
             type=sha,format=long
             type=raw,value=latest,enable={{is_default_branch}}
-            type=tag,pattern=v*
+            type=ref,event=tag
 
       - name: Build and push Docker image
         uses: docker/build-push-action@v5

@@ -1,19 +1,34 @@
-FROM node:20-alpine
-
-# Cực kỳ quan trọng: Prisma và Alpine bắt buộc cần OpenSSL và libc6-compat để chạy query engine
-RUN apk add --no-cache openssl libc6-compat
+# Sử dụng base image Node.js
+FROM node:20-alpine AS builder
 
 WORKDIR /app
 
+# Cài đặt các gói cần thiết cho Prisma
+RUN apk add --no-cache openssl libc6-compat
+
+# Copy package.json và cài đặt dependencies
 COPY package*.json ./
 RUN npm install
 
+# Copy toàn bộ mã nguồn
 COPY . .
 
-# Build ứng dụng và generate Prisma Client
-RUN DATABASE_URL="postgresql://build:build@localhost:5432/build" npx prisma generate && npm run build
+# Build ứng dụng NestJS
+RUN npm run build
+
+# --- PRODUCTION STAGE ---
+FROM node:20-alpine
+WORKDIR /app
+
+RUN apk add --no-cache openssl libc6-compat
+
+COPY --from=builder /app/package*.json ./
+COPY --from=builder /app/node_modules ./node_modules
+COPY --from=builder /app/dist ./dist
+COPY --from=builder /app/prisma ./prisma
+COPY --from=builder /app/prisma.config.ts ./prisma.config.ts
 
 EXPOSE 3001
 
-# Chạy migration an toàn trước, sau đó mới khởi động ứng dụng NestJS
-CMD ["sh", "-c", "npx prisma migrate deploy && node dist/main"]
+# Chạy migrate bằng DIRECT_URL (cổng 5432) trước, sau đó khởi động app dùng DATABASE_URL (cổng 6543)
+CMD npx prisma migrate deploy && node dist/main.js

@@ -24,17 +24,26 @@
 - Thanh toán: Tích hợp cổng thanh toán VNPay (tạo URL thanh toán, xử lý callback trả về, cập nhật trạng thái đơn hàng). 
 - Quản lý trạng thái & Lịch sử: Xem lịch sử đơn hàng cá nhân và cập nhật trạng thái đơn hàng.
 - Hệ thống Loyalty: Tự động cộng điểm thưởng tương ứng với giá trị đơn hàng thanh toán thành công.
+
 ### Mở rộng (sau MVP)
+- Hệ thống quản lý đa chi nhánh phức tạp và đồng bộ kho toàn hệ thống (Multi-branch chain-wide inventory).
+- Tích hợp thêm các cổng thanh toán quốc tế (PayPal, Stripe) hoặc các ví điện tử khác ngoài VNPay.
+
 ### Out-of-scope
-- Hệ thống quản lý đa chi nhánh phức tạp (Multi-branch chain-wide inventory).
-- Tích hợp các cổng thanh toán quốc tế (PayPal, Stripe) hoặc ví điện tử khác ngoài VNPay.
-- Hệ thống giao hàng tích hợp tài xế (Shipper logistics real-time tracking).
+- Hệ thống giao hàng tích hợp định vị tài xế thời gian thực (Shipper logistics real-time tracking).
+- Tích hợp phần cứng ngoại vi (Máy in hóa đơn nhiệt, két đựng tiền, máy quét mã vạch tại quầy).
+- Phát hành và tích hợp hệ thống hóa đơn điện tử (e-Invoice VAT) với Tổng cục Thuế.
+
 ## 4. Giả định
 - Người dùng có thiết bị di động hoặc máy tính có kết nối Internet ổn định để truy cập giao diện Next.js/PWA. 
 - Cổng thanh toán Sandbox của VNPay hoạt động ổn định trong suốt quá trình nhóm kiểm thử (testing) và nghiệm thu.
+
 ## 5. Ràng buộc
 - Bắt buộc sử dụng công nghệ: Next.js (Frontend), NestJS (Backend), PostgreSQL (Database), và Docker (Container hóa). 
 - Toàn bộ mã nguồn phải được quản lý trên Git với quy trình CI/CD tự động hóa. 
+
 ## 6. Rủi ro ban đầu
 | Rủi ro | Khả năng | Ảnh hưởng | Giảm thiểu |
 |---|---|---|---|
+| Rủi ro lệch múi giờ / lỗi kết nối Database | Trung bình | Cao | Sử dụng Prisma ORM kết hợp biến môi trường (.env) chuẩn hóa và chạy qua Docker Compose để đồng bộ môi trường local và production. |
+| Rủi ro sai lệch chữ ký VNPay (Checksum) | Cao | Cao| Xây dựng hàm helper chuẩn hóa tham số theo đúng tài liệu kỹ thuật của VNPay và viết Unit Test kỹ lưỡng ở tầng Service. |

@@ -1,0 +1,53 @@
+name: CD (Deploy & Smoke Test)
+
+on:
+  push:
+    branches: [ main ]
+    tags:
+      - 'v*'
+
+jobs:
+  deploy-production:
+    name: Deploy to Render & Supabase
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      # 1. Trigger Deploy lên Render (qua Webhook hoặc Render API)
+      - name: Trigger Render Deployment
+        run: |
+          if [ -n "${{ secrets.RENDER_DEPLOY_HOOK }}" ]; then
+            curl -X POST "${{ secrets.RENDER_DEPLOY_HOOK }}"
+            echo "Triggered Render deployment successfully."
+          else
+            echo "Missing RENDER_DEPLOY_HOOK secret"
+            exit 1
+          fi
+
+      # 2. Chạy Migration an toàn xuống Supabase Database
+      - name: Setup Node.js for Migration
+        uses: actions/setup-node@v4
+        with:
+          node-version: 20
+
+      - name: Run Prisma Migration
+        run: |
+          cd backend
+          npm ci
+          npx prisma migrate deploy
+        env:
+          DATABASE_URL: ${{ secrets.DATABASE_URL }}
+
+      # 3. Smoke Test / Health Check sau khi deploy
+      - name: Smoke Test (Health Check)
+        run: |
+          echo "Waiting for service to start up..."
+          sleep 15
+          response=$(curl -s -o /dev/null -w "%{http_code}" https://brewlite-api-5ec6.onrender.com/health)
+          if [ "$response" -eq 200 ]; then
+            echo "Smoke test passed! /health returned 200 OK."
+          else
+            echo "Smoke test failed with status code: $response"
+            exit 1
+          fi

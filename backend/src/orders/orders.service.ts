@@ -1,4 +1,5 @@
 import {
+  BadRequestException,
   Injectable,
   NotFoundException
 } from '@nestjs/common';
@@ -18,6 +19,9 @@ export class OrdersService {
   ) {}
 
   async create(userId: number, createOrderDto: CreateOrderDto) {
+    if (!createOrderDto.items || createOrderDto.items.length === 0) {
+      throw new BadRequestException('Giỏ hàng không được để trống.');
+    }
     return await this.prisma.$transaction(async (tx) => {
       let subtotal = 0;
       const SIZE_EXTRA: Record<string, number> = {

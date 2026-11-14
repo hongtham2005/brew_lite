@@ -4,7 +4,7 @@ import { Size } from '../generated/prisma/client';
 import { LoyaltyService } from '../loyalty/loyalty.service';
 import { PrismaService } from '../prisma/prisma.service';
 import { OrdersService } from '../orders/orders.service';
-
+import { InventoryService } from '../inventory/inventory.service';
 describe('Inventory concurrency', () => {
   let service: OrdersService;
 
@@ -34,10 +34,39 @@ describe('Inventory concurrency', () => {
 
   beforeEach(async () => {
     const module: TestingModule = await Test.createTestingModule({
-      providers: [
+providers: [
         OrdersService,
         { provide: PrismaService, useValue: prisma },
         { provide: LoyaltyService, useValue: loyaltyService },
+        { 
+          provide: InventoryService, 
+          useValue: { 
+            deductStockByRecipe: jest.fn().mockImplementation(async (tx, items) => {
+              for (const item of items) {
+                // Gọi findUnique để lấy stock hiện tại
+                const product = await tx.product.findUnique({ where: { id: item.productId } });
+                if (!product || product.stock < item.qty) {
+                  throw new BadRequestException('Không đủ tồn kho');
+                }
+                // Gọi updateMany theo đúng chuẩn concurrency kiểm tra version & stock
+                const res = await tx.product.updateMany({
+                  where: { 
+                    id: item.productId, 
+                    version: product.version,
+                    stock: { gte: item.qty } 
+                  },
+                  data: { 
+                    stock: { decrement: item.qty },
+                    version: { increment: 1 }
+                  }
+                });
+                if (res.count === 0) {
+                  throw new BadRequestException('Không đủ tồn kho');
+                }
+              }
+            }) 
+          } 
+        },
       ],
     }).compile();
 

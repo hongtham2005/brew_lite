@@ -2,13 +2,17 @@ import { NotFoundException } from '@nestjs/common';
 import { LoyaltyService } from '../loyalty/loyalty.service';
 import { PrismaService } from '../prisma/prisma.service';
 import { OrdersService } from './orders.service';
+import { InventoryService } from '../inventory/inventory.service';
 
 describe('OrdersService order ownership', () => {
   const findFirst = jest.fn();
-  const service = new OrdersService(
-    { order: { findFirst } } as unknown as PrismaService,
-    {} as LoyaltyService,
-  );
+  const inventoryService = {} as InventoryService;
+  const loyaltyService = {} as LoyaltyService;
+  const prismaService = { order: { findFirst } } as unknown as PrismaService;
+
+  const service = new OrdersService(prismaService, loyaltyService, inventoryService); 
+  
+
 
   beforeEach(() => {
     findFirst.mockReset();

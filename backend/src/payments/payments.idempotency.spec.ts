@@ -5,6 +5,7 @@ import { OnlinePaymentGatewayService } from './online-payment-gateway.service';
 import { PrismaService } from '../prisma/prisma.service';
 import { LoyaltyService } from '../loyalty/loyalty.service';
 import { MailService } from '../mail/mail.service';
+import { JwtService } from '@nestjs/jwt';
 
 describe('PaymentsService', () => {
   let service: PaymentsService;
@@ -46,6 +47,7 @@ describe('PaymentsService', () => {
         { provide: OnlinePaymentGatewayService, useValue: mockPaymentGateway },
         { provide: LoyaltyService, useValue: mockLoyaltyService },
         { provide: MailService, useValue: mockMailService },
+        { provide: JwtService, useValue: { sign: jest.fn() } },
       ],
     }).compile();
 
@@ -280,7 +282,7 @@ describe('PaymentsService', () => {
     expect(mockLoyaltyService.addLoyaltyPoints).toHaveBeenCalledTimes(1);
     expect(mockMailService.sendOrderConfirmation).toHaveBeenCalledTimes(1);
     expect(mockMailService.sendOrderConfirmation).toHaveBeenCalledWith(
-      'hongthamnguyenle68@gmail.com',
+      'customer@example.test', 
       expect.objectContaining({
         paymentMethod: 'VNPay',
         confirmationUrl: expect.stringContaining('/payment-confirmation?token='),

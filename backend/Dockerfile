@@ -15,5 +15,5 @@ RUN DATABASE_URL="postgresql://build:build@localhost:5432/build" npx prisma gene
 
 EXPOSE 3001
 
-# Chạy trực tiếp node dist/main thay vì qua npm để Docker quản lý tiến trình chuẩn xác nhất
-CMD ["node", "dist/main"]
+# Chạy migration an toàn trước, sau đó mới khởi động ứng dụng NestJS
+CMD ["sh", "-c", "npx prisma migrate deploy && node dist/main"]

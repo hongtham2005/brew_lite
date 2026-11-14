@@ -1,4 +1,4 @@
-name: CD (Deploy & Smoke Test)
+name: CI/CD Pipeline (Lint, Build, Docker, Deploy & Smoke Test)
 
 on:
   push:
@@ -6,15 +6,83 @@ on:
     tags:
       - 'v*'
 
+env:
+  REGISTRY: ghcr.io
+  IMAGE_NAME: ${{ github.repository }}
+
 jobs:
-  deploy-production:
-    name: Deploy to Render & Supabase
+  # Ý 1: Chạy quality gate: lint, test và build
+  quality-gate:
+    name: 1. Quality Gate (Lint & Build)
     runs-on: ubuntu-latest
     steps:
       - name: Checkout code
         uses: actions/checkout@v4
 
-      # 1. Trigger Deploy lên Render qua Webhook
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+          cache: 'npm'
+
+      - name: Install dependencies
+        run: npm ci
+
+      - name: Run Lint
+        run: npm run lint --if-present
+
+      - name: Run Build Check
+        run: npm run build
+
+  # Ý 2 & 3: Tạo image gắn tag bằng commit SHA/version và Push lên Container Registry (GHCR)
+  docker-build-push:
+    name: 2 & 3. Build & Push Docker Image
+    needs: quality-gate
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+      packages: write
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Set up Docker Buildx
+        uses: docker/setup-buildx-action@v3
+
+      - name: Log in to the GitHub Container Registry
+        uses: docker/login-action@v3
+        with:
+          registry: ${{ env.REGISTRY }}
+          username: ${{ github.actor }}
+          password: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Extract metadata (tags, labels) for Docker
+        id: meta
+        uses: docker/metadata-action@v5
+        with:
+          images: ${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}
+          tags: |
+            type=sha,format=long
+            type=raw,value=latest,enable={{is_default_branch}}
+            type=tag,pattern=v*
+
+      - name: Build and push Docker image
+        uses: docker/build-push-action@v5
+        with:
+          context: .
+          push: true
+          tags: ${{ steps.meta.outputs.tags }}
+          labels: ${{ steps.meta.outputs.labels }}
+
+  # Ý 4, 5, 6, 7: Trigger Render, Migration an toàn & Smoke Test
+  deploy-production:
+    name: 4, 5, 6, 7. Deploy & Smoke Test
+    needs: docker-build-push
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
       - name: Trigger Render Deployment
         run: |
           if [ -n "${{ secrets.RENDER_DEPLOY_HOOK }}" ]; then
@@ -24,7 +92,6 @@ jobs:
             echo "Missing RENDER_DEPLOY_HOOK secret"
             exit 1
           fi
-
 
       - name: Smoke Test (Health Check)
         run: |

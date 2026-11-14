@@ -15,6 +15,9 @@ jobs:
   quality-gate:
     name: 1. Quality Gate (Lint & Build)
     runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: ./backend
     steps:
       - name: Checkout code
         uses: actions/checkout@v4
@@ -28,7 +31,7 @@ jobs:
         run: npm install
 
       - name: Generate Prisma Client
-        run: npx prisma generate --schema=backend/prisma/schema.prisma
+        run: npx prisma generate
 
       - name: Run Lint
         run: npm run lint --if-present

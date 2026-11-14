@@ -14,7 +14,7 @@ jobs:
       - name: Checkout code
         uses: actions/checkout@v4
 
-      # 1. Trigger Deploy lên Render (qua Webhook hoặc Render API)
+      # 1. Trigger Deploy lên Render qua Webhook
       - name: Trigger Render Deployment
         run: |
           if [ -n "${{ secrets.RENDER_DEPLOY_HOOK }}" ]; then
@@ -25,24 +25,12 @@ jobs:
             exit 1
           fi
 
-      # 2. Chạy Migration an toàn xuống Supabase Database
-      - name: Setup Node.js for Migration
-        uses: actions/setup-node@v4
-        with:
-          node-version: 20
-
-      - name: Run Prisma Migration
-        run: |
-          cd backend
-          npm ci
-        env:
-          DATABASE_URL: ${{ secrets.DATABASE_URL }}
-
-      # 3. Smoke Test / Health Check sau khi deploy
+      # 2. Smoke Test / Health Check sau khi deploy (Đợi Render build xong)
       - name: Smoke Test (Health Check)
         run: |
-          echo "Waiting for service to start up..."
-          sleep 15
+          echo "Waiting for Render to build and start the service..."
+          sleep 45
+          # Lưu ý: Nếu app của bạn có set global prefix là 'api', hãy đổi thành /api/health
           response=$(curl -s -o /dev/null -w "%{http_code}" https://brewlite-api-5ec6.onrender.com/health)
           if [ "$response" -eq 200 ]; then
             echo "Smoke test passed! /health returned 200 OK."

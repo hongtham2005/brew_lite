@@ -459,6 +459,6 @@ export class PaymentsService {
     ).replace(/\/+$/, '');
     const url = new URL('/payment-confirmation', baseUrl);
     url.searchParams.set('token', token);
-    return url.toString();
+    return url.toString(); 
   }
 }

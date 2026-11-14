@@ -1,0 +1,7 @@
+{
+  "name": "brewlite-root",
+  "private": true,
+  "scripts": {
+    "test:e2e": "cd backend && npx jest --config ../tests/e2e/jest-e2e.json"
+  }
+}

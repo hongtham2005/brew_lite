@@ -1,0 +1,23 @@
+{
+  "moduleFileExtensions": ["js", "json", "ts"],
+  "rootDir": "../",
+  "testEnvironment": "node",
+  "testMatch": ["<rootDir>/tests/integration/**/*.integration-spec.ts"],
+  "testPathIgnorePatterns": [
+    "\\\\node_modules\\\\",
+    "\\\\dist\\\\"
+  ],
+  "moduleDirectories": [
+    "node_modules",
+    "backend/node_modules"
+  ],
+  "transform": {
+    "^.+\\.(t|j)s$": "<rootDir>/backend/node_modules/ts-jest"
+  },
+  "moduleNameMapper": {
+    "^src/(.*)$": "<rootDir>/backend/src/$1"
+  },
+  "haste": {
+    "enableSymlinks": false
+  }
+}

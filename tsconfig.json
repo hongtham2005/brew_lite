@@ -1,0 +1,22 @@
+{
+  "compilerOptions": {
+    "module": "commonjs",
+    "moduleResolution": "node",
+    "target": "ES2021",
+    "strict": true,
+    "esModuleInterop": true,
+    "experimentalDecorators": true,
+    "emitDecoratorMetadata": true,
+    "skipLibCheck": true,
+    "baseUrl": ".",
+    "types": ["jest", "node"],
+    "typeRoots": [
+      "./backend/node_modules/@types"
+    ],
+    "paths": {
+      "@nestjs/*": ["./backend/node_modules/@nestjs/*"],
+      "supertest": ["./backend/node_modules/supertest"]
+    }
+  },
+  "include": ["tests/**/*", "backend/src/**/*"]
+}

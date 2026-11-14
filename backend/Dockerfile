@@ -10,10 +10,13 @@ RUN apk add --no-cache openssl libc6-compat
 COPY package*.json ./
 RUN npm install
 
-# Copy toàn bộ mã nguồn
+# Copy toàn bộ mã nguồn (bao gồm cả schema.prisma và prisma.config.ts)
 COPY . .
 
-# Build ứng dụng NestJS
+# 1. BẮT BUỘC: Phải generate Prisma Client TRƯỚC KHI build NestJS
+RUN npx prisma generate
+
+# 2. Sau đó mới chạy build ứng dụng NestJS
 RUN npm run build
 
 # --- PRODUCTION STAGE ---
@@ -27,8 +30,9 @@ COPY --from=builder /app/node_modules ./node_modules
 COPY --from=builder /app/dist ./dist
 COPY --from=builder /app/prisma ./prisma
 COPY --from=builder /app/prisma.config.ts ./prisma.config.ts
+COPY --from=builder /app/src/generated ./src/generated
 
 EXPOSE 3001
 
-# Chạy migrate bằng DIRECT_URL (cổng 5432) trước, sau đó khởi động app dùng DATABASE_URL (cổng 6543)
+# Chạy migration bằng DIRECT_URL (cổng 5432) trước, sau đó khởi động app dùng DATABASE_URL (cổng 6543)
 CMD npx prisma migrate deploy && node dist/main.js

@@ -22,9 +22,11 @@ async function bootstrap() {
   app.enableCors();
 
   const port = Number(process.env.PORT) || 3001;
-  await app.listen(port);
-
-  console.log(`BrewLite backend is running at http://localhost:${port}`);
+  
+  // Chỉ gọi 1 lần duy nhất với '0.0.0.0' để Render/Docker nhận diện được cổng mở
+  await app.listen(port, '0.0.0.0');
+  
+  console.log(`BrewLite backend is running on port ${port}`);
 }
 
 bootstrap();

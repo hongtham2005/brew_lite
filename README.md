@@ -92,10 +92,19 @@ npm run prisma:seed           # nạp dữ liệu mẫu
 npm run start:dev
 
 # Web (terminal khác)
-cd apps/web
+cd frontend
 npm ci
 npm run dev
 ```
+
+## 🗄️ Quản lý Database (Prisma Studio)
+
+```bash
+cd backend
+npx prisma studio -p 5555
+```
+
+- Giao diện quản lý Database: http://localhost:5555
 
 ## 🧪 Kiểm thử
 

@@ -1,0 +1,833 @@
+{
+  "info": {
+    "_postman_id": "b8e91d42-7c45-4c88-9b1a-brewlite2026",
+    "name": "BrewLite API – E2E, Negative & Performance Load Test",
+    "description": "Bộ kịch bản kiểm thử tự động cho Backend BrewLite:\n- Thư mục 1: Kiểm thử chức năng End-to-End & Negative Cases (TC-01 -> TC-13)\n- Thư mục 2: Kiểm thử Hiệu năng (NFR-01 < 500ms) & Tạo hàng loạt Random Users/Orders (PERF-01 -> PERF-05)",
+    "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
+  },
+  "variable": [
+    {
+      "key": "baseUrl",
+      "value": "http://localhost:3001",
+      "type": "string"
+    },
+    {
+      "key": "testEmail",
+      "value": "khachhang_postman@gmail.com",
+      "type": "string"
+    },
+    {
+      "key": "testUsername",
+      "value": "Khach Hang Test",
+      "type": "string"
+    },
+    {
+      "key": "accessToken",
+      "value": "",
+      "type": "string"
+    },
+    {
+      "key": "orderId",
+      "value": "1",
+      "type": "string"
+    },
+    {
+      "key": "orderTotal",
+      "value": "40000",
+      "type": "string"
+    },
+    {
+      "key": "idempotencyKey",
+      "value": "idem-postman-key-001",
+      "type": "string"
+    },
+    {
+      "key": "randomProductId",
+      "value": "1",
+      "type": "string"
+    },
+    {
+      "key": "randomSize",
+      "value": "M",
+      "type": "string"
+    },
+    {
+      "key": "randomTopping",
+      "value": "Trân châu đen",
+      "type": "string"
+    }
+  ],
+  "item": [
+    {
+      "name": "1. Functional & E2E Test Suite (TC-01 -> TC-13)",
+      "description": "Kiểm thử toàn diện luồng nghiệp vụ End-to-End, Bảo mật JWT (401), Validate dữ liệu (400) và Idempotency.",
+      "item": [
+        {
+          "name": "TC-01: [Health] Kiểm tra trạng thái API & Kết nối Database (GET /health)",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test('HTTP Status là 200 OK', function () {",
+                  "    pm.response.to.have.status(200);",
+                  "});",
+                  "pm.test('Database ở trạng thái connected', function () {",
+                  "    const json = pm.response.json();",
+                  "    pm.expect(json.status).to.eql('ok');",
+                  "    pm.expect(json.database).to.eql('connected');",
+                  "});",
+                  "pm.test('[NFR-01] Thời gian phản hồi < 500ms', function () {",
+                  "    pm.expect(pm.response.responseTime).to.be.below(500);",
+                  "});"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ],
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/health",
+              "host": ["{{baseUrl}}"],
+              "path": ["health"]
+            }
+          }
+        },
+        {
+          "name": "TC-02: [Auth] Đăng ký tài khoản ngẫu nhiên mới (POST /auth/register)",
+          "event": [
+            {
+              "listen": "prerequest",
+              "script": {
+                "exec": [
+                  "const rand = Math.floor(100000 + Math.random() * 900000);",
+                  "const uniqueEmail = `user_${Date.now()}_${rand}@brewlite.com`;",
+                  "const uniqueName = `User ${rand}`;",
+                  "pm.collectionVariables.set('testEmail', uniqueEmail);",
+                  "pm.collectionVariables.set('testUsername', uniqueName);"
+                ],
+                "type": "text/javascript"
+              }
+            },
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test('Đăng ký thành công (200/201)', function () {",
+                  "    pm.expect(pm.response.code).to.be.oneOf([200, 201]);",
+                  "});",
+                  "pm.test('Trả về thông tin user và không lộ passwordHash', function () {",
+                  "    const json = pm.response.json();",
+                  "    pm.expect(json.message).to.include('Đăng ký tài khoản thành công');",
+                  "    pm.expect(json.user).to.have.property('email');",
+                  "    pm.expect(json.user).to.not.have.property('passwordHash');",
+                  "});"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"username\": \"{{testUsername}}\",\n  \"email\": \"{{testEmail}}\",\n  \"password\": \"123456\"\n}"
+            },
+            "url": {
+              "raw": "{{baseUrl}}/auth/register",
+              "host": ["{{baseUrl}}"],
+              "path": ["auth", "register"]
+            }
+          }
+        },
+        {
+          "name": "TC-03: [Auth] Đăng nhập và tự động lưu JWT Token (POST /auth/login)",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test('Đăng nhập thành công (200/201)', function () {",
+                  "    pm.expect(pm.response.code).to.be.oneOf([200, 201]);",
+                  "});",
+                  "pm.test('Nhận được access_token và lưu vào biến môi trường', function () {",
+                  "    const json = pm.response.json();",
+                  "    pm.expect(json).to.have.property('access_token');",
+                  "    pm.collectionVariables.set('accessToken', json.access_token);",
+                  "});"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"email\": \"{{testEmail}}\",\n  \"password\": \"123456\"\n}"
+            },
+            "url": {
+              "raw": "{{baseUrl}}/auth/login",
+              "host": ["{{baseUrl}}"],
+              "path": ["auth", "login"]
+            }
+          }
+        },
+        {
+          "name": "TC-04: [Products] Lấy danh sách Menu & số ly có thể pha (GET /products)",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test('HTTP Status 200 OK', function () {",
+                  "    pm.response.to.have.status(200);",
+                  "});",
+                  "pm.test('Trả về mảng sản phẩm có tính toán trường stock', function () {",
+                  "    const json = pm.response.json();",
+                  "    pm.expect(json).to.be.an('array').that.is.not.empty;",
+                  "    pm.expect(json[0]).to.have.property('stock');",
+                  "});",
+                  "pm.test('[NFR-01] Thời gian phản hồi GET /products < 500ms', function () {",
+                  "    pm.expect(pm.response.responseTime).to.be.below(500);",
+                  "});"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ],
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/products",
+              "host": ["{{baseUrl}}"],
+              "path": ["products"]
+            }
+          }
+        },
+        {
+          "name": "TC-05: [Products] Xem chi tiết 1 sản phẩm (GET /products/1)",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test('HTTP Status 200 OK', function () {",
+                  "    pm.response.to.have.status(200);",
+                  "});",
+                  "pm.test('Trả về đúng sản phẩm ID = 1 kèm công thức recipes', function () {",
+                  "    const json = pm.response.json();",
+                  "    pm.expect(json.id).to.eql(1);",
+                  "    pm.expect(json).to.have.property('recipes');",
+                  "});",
+                  "pm.test('[NFR-01] Thời gian phản hồi GET /products/1 < 500ms', function () {",
+                  "    pm.expect(pm.response.responseTime).to.be.below(500);",
+                  "});"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ],
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/products/1",
+              "host": ["{{baseUrl}}"],
+              "path": ["products", "1"]
+            }
+          }
+        },
+        {
+          "name": "TC-06: [Promo] Kiểm tra mã giảm giá BREW10 (GET /orders/promo/check)",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test('HTTP Status 200 OK', function () {",
+                  "    pm.response.to.have.status(200);",
+                  "});",
+                  "pm.test('Tính đúng số tiền giảm 10% cho đơn 90.000đ', function () {",
+                  "    const json = pm.response.json();",
+                  "    pm.expect(json.code).to.eql('BREW10');",
+                  "    pm.expect(json.discountAmount).to.eql(9000);",
+                  "});"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ],
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/orders/promo/check?code=BREW10&amount=90000",
+              "host": ["{{baseUrl}}"],
+              "path": ["orders", "promo", "check"],
+              "query": [
+                {
+                  "key": "code",
+                  "value": "BREW10"
+                },
+                {
+                  "key": "amount",
+                  "value": "90000"
+                }
+              ]
+            }
+          }
+        },
+        {
+          "name": "TC-07: [Orders - Negative] Chặn tạo đơn khi không có JWT Token (401)",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test('Trả về 401 Unauthorized khi thiếu Bearer Token', function () {",
+                  "    pm.response.to.have.status(401);",
+                  "});"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"items\": [\n    {\n      \"productId\": 1,\n      \"size\": \"M\",\n      \"qty\": 1\n    }\n  ]\n}"
+            },
+            "url": {
+              "raw": "{{baseUrl}}/orders",
+              "host": ["{{baseUrl}}"],
+              "path": ["orders"]
+            }
+          }
+        },
+        {
+          "name": "TC-08: [Orders] Tạo đơn hàng mới có áp mã BREW10 & trừ kho (POST /orders)",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test('Tạo đơn hàng thành công (201 Created)', function () {",
+                  "    pm.expect(pm.response.code).to.be.oneOf([200, 201]);",
+                  "});",
+                  "pm.test('Lưu orderId và orderTotal vào biến môi trường', function () {",
+                  "    const json = pm.response.json();",
+                  "    pm.expect(json.status).to.eql('PENDING');",
+                  "    pm.expect(json).to.have.property('orderId');",
+                  "    pm.collectionVariables.set('orderId', json.orderId);",
+                  "    pm.collectionVariables.set('orderTotal', json.total);",
+                  "    pm.collectionVariables.set('idempotencyKey', `idem-order-${json.orderId}-${Date.now()}`);",
+                  "});"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ],
+          "request": {
+            "auth": {
+              "type": "bearer",
+              "bearer": [
+                {
+                  "key": "token",
+                  "value": "{{accessToken}}",
+                  "type": "string"
+                }
+              ]
+            },
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"customerName\": \"{{testUsername}}\",\n  \"promoCode\": \"BREW10\",\n  \"items\": [\n    {\n      \"productId\": 1,\n      \"size\": \"M\",\n      \"qty\": 2,\n      \"topping\": \"Trân châu đen\"\n    }\n  ]\n}"
+            },
+            "url": {
+              "raw": "{{baseUrl}}/orders",
+              "host": ["{{baseUrl}}"],
+              "path": ["orders"]
+            }
+          }
+        },
+        {
+          "name": "TC-09: [Payments] Khởi tạo thanh toán VNPay Sandbox lần 1 (POST /payments)",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test('Khởi tạo thanh toán thành công (200/201)', function () {",
+                  "    pm.expect(pm.response.code).to.be.oneOf([200, 201]);",
+                  "});",
+                  "pm.test('Sinh ra paymentUrl VNPay Sandbox có chữ ký vnp_SecureHash', function () {",
+                  "    const json = pm.response.json();",
+                  "    pm.expect(json).to.have.property('paymentUrl');",
+                  "    pm.expect(json.paymentUrl).to.include('vnp_SecureHash=');",
+                  "});"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ],
+          "request": {
+            "auth": {
+              "type": "bearer",
+              "bearer": [
+                {
+                  "key": "token",
+                  "value": "{{accessToken}}",
+                  "type": "string"
+                }
+              ]
+            },
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"orderId\": {{orderId}},\n  \"amount\": {{orderTotal}},\n  \"method\": \"VNPAY_QR\",\n  \"idempotencyKey\": \"{{idempotencyKey}}\",\n  \"customerName\": \"{{testUsername}}\"\n}"
+            },
+            "url": {
+              "raw": "{{baseUrl}}/payments",
+              "host": ["{{baseUrl}}"],
+              "path": ["payments"]
+            }
+          }
+        },
+        {
+          "name": "TC-10: [Payments - Idempotency] Gửi lặp lại cùng IdempotencyKey lần 2 (POST /payments)",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test('Phản hồi thành công mà không tạo giao dịch trùng', function () {",
+                  "    pm.expect(pm.response.code).to.be.oneOf([200, 201]);",
+                  "    const json = pm.response.json();",
+                  "    pm.expect(json.message).to.include('Idempotent');",
+                  "    pm.expect(json).to.have.property('paymentUrl');",
+                  "});"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ],
+          "request": {
+            "auth": {
+              "type": "bearer",
+              "bearer": [
+                {
+                  "key": "token",
+                  "value": "{{accessToken}}",
+                  "type": "string"
+                }
+              ]
+            },
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"orderId\": {{orderId}},\n  \"amount\": {{orderTotal}},\n  \"method\": \"VNPAY_QR\",\n  \"idempotencyKey\": \"{{idempotencyKey}}\",\n  \"customerName\": \"{{testUsername}}\"\n}"
+            },
+            "url": {
+              "raw": "{{baseUrl}}/payments",
+              "host": ["{{baseUrl}}"],
+              "path": ["payments"]
+            }
+          }
+        },
+        {
+          "name": "TC-11: [Payments - Negative] Chặn phương thức thanh toán không hỗ trợ (400)",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test('Trả về 400 Bad Request khi method khác VNPAY_QR', function () {",
+                  "    pm.response.to.have.status(400);",
+                  "    const json = pm.response.json();",
+                  "    pm.expect(json.message).to.include('Phương thức thanh toán không được hỗ trợ');",
+                  "});"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ],
+          "request": {
+            "auth": {
+              "type": "bearer",
+              "bearer": [
+                {
+                  "key": "token",
+                  "value": "{{accessToken}}",
+                  "type": "string"
+                }
+              ]
+            },
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"orderId\": {{orderId}},\n  \"amount\": {{orderTotal}},\n  \"method\": \"CASH_INVALID\",\n  \"idempotencyKey\": \"idem-invalid-method-001\"\n}"
+            },
+            "url": {
+              "raw": "{{baseUrl}}/payments",
+              "host": ["{{baseUrl}}"],
+              "path": ["payments"]
+            }
+          }
+        },
+        {
+          "name": "TC-12: [Orders] Xem lịch sử đơn hàng cá nhân (GET /orders/me)",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test('HTTP Status 200 OK và có chứa đơn vừa tạo', function () {",
+                  "    pm.response.to.have.status(200);",
+                  "    const json = pm.response.json();",
+                  "    pm.expect(json).to.be.an('array').that.is.not.empty;",
+                  "});"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ],
+          "request": {
+            "auth": {
+              "type": "bearer",
+              "bearer": [
+                {
+                  "key": "token",
+                  "value": "{{accessToken}}",
+                  "type": "string"
+                }
+              ]
+            },
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/orders/me",
+              "host": ["{{baseUrl}}"],
+              "path": ["orders", "me"]
+            }
+          }
+        },
+        {
+          "name": "TC-13: [Orders] Hủy đơn hàng & hoàn trả nguyên liệu vào kho (PATCH /orders/:id/cancel)",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test('Hủy đơn thành công (200 OK) và chuyển status sang CANCELLED', function () {",
+                  "    pm.response.to.have.status(200);",
+                  "    const json = pm.response.json();",
+                  "    pm.expect(json.status).to.eql('CANCELLED');",
+                  "});"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ],
+          "request": {
+            "auth": {
+              "type": "bearer",
+              "bearer": [
+                {
+                  "key": "token",
+                  "value": "{{accessToken}}",
+                  "type": "string"
+                }
+              ]
+            },
+            "method": "PATCH",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/orders/{{orderId}}/cancel",
+              "host": ["{{baseUrl}}"],
+              "path": ["orders", "{{orderId}}", "cancel"]
+            }
+          }
+        }
+      ]
+    },
+    {
+      "name": "2. Performance & Mass Random Users Load Test (PERF-01 -> PERF-05)",
+      "description": "Dùng với Postman Collection Runner (chỉnh Iterations = 20, 50, 100) hoặc Postman Performance Test (Virtual Users) để tạo hàng loạt Random Users & Đơn hàng ngẫu nhiên và đo thời gian phản hồi (< 500ms).",
+      "item": [
+        {
+          "name": "PERF-01: [Mass User] Tự sinh Random User & Đăng ký (POST /auth/register)",
+          "event": [
+            {
+              "listen": "prerequest",
+              "script": {
+                "exec": [
+                  "const firstNames = ['Nguyen', 'Tran', 'Le', 'Pham', 'Hoang', 'Vo', 'Dang', 'Bui'];",
+                  "const lastNames = ['Tuan', 'Tham', 'Phuong', 'Duy', 'Khoa', 'Nam', 'Minh', 'An', 'Linh'];",
+                  "const fn = firstNames[Math.floor(Math.random() * firstNames.length)];",
+                  "const ln = lastNames[Math.floor(Math.random() * lastNames.length)];",
+                  "const rand = Math.floor(100000 + Math.random() * 900000);",
+                  "const uniqueEmail = `${fn.toLowerCase()}.${ln.toLowerCase()}.${Date.now()}.${rand}@brewlite.com`;",
+                  "const randomName = `${fn} ${ln} ${rand}`;",
+                  "",
+                  "const sizes = ['S', 'M', 'L'];",
+                  "const toppings = ['Trân châu đen', 'Thạch dừa', 'Kem Cheese', 'Pudding Trứng', ''];",
+                  "",
+                  "pm.collectionVariables.set('testEmail', uniqueEmail);",
+                  "pm.collectionVariables.set('testUsername', randomName);",
+                  "pm.collectionVariables.set('randomProductId', String(Math.floor(Math.random() * 4) + 1));",
+                  "pm.collectionVariables.set('randomSize', sizes[Math.floor(Math.random() * sizes.length)]);",
+                  "pm.collectionVariables.set('randomTopping', toppings[Math.floor(Math.random() * toppings.length)]);"
+                ],
+                "type": "text/javascript"
+              }
+            },
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test('[PERF-01] Đăng ký Random User thành công (200/201)', function () {",
+                  "    pm.expect(pm.response.code).to.be.oneOf([200, 201]);",
+                  "});",
+                  "pm.test('[PERF-01] Thời gian băm bcrypt & tạo User < 800ms', function () {",
+                  "    pm.expect(pm.response.responseTime).to.be.below(800);",
+                  "});"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"username\": \"{{testUsername}}\",\n  \"email\": \"{{testEmail}}\",\n  \"password\": \"123456\"\n}"
+            },
+            "url": {
+              "raw": "{{baseUrl}}/auth/register",
+              "host": ["{{baseUrl}}"],
+              "path": ["auth", "register"]
+            }
+          }
+        },
+        {
+          "name": "PERF-02: [Mass User] Đăng nhập & Lấy JWT Token (POST /auth/login)",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test('[PERF-02] Đăng nhập thành công & lấy JWT', function () {",
+                  "    pm.expect(pm.response.code).to.be.oneOf([200, 201]);",
+                  "    const json = pm.response.json();",
+                  "    pm.collectionVariables.set('accessToken', json.access_token);",
+                  "});",
+                  "pm.test('[PERF-02] Thời gian xác thực JWT < 500ms', function () {",
+                  "    pm.expect(pm.response.responseTime).to.be.below(500);",
+                  "});"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"email\": \"{{testEmail}}\",\n  \"password\": \"123456\"\n}"
+            },
+            "url": {
+              "raw": "{{baseUrl}}/auth/login",
+              "host": ["{{baseUrl}}"],
+              "path": ["auth", "login"]
+            }
+          }
+        },
+        {
+          "name": "PERF-03: [NFR-01 Benchmark] Truy xuất Menu dưới tải (< 500ms) (GET /products)",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test('[PERF-03] HTTP 200 OK', function () {",
+                  "    pm.response.to.have.status(200);",
+                  "});",
+                  "pm.test('[NFR-01] Thời gian phản hồi GET /products < 500ms', function () {",
+                  "    pm.expect(pm.response.responseTime).to.be.below(500);",
+                  "});"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ],
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/products",
+              "host": ["{{baseUrl}}"],
+              "path": ["products"]
+            }
+          }
+        },
+        {
+          "name": "PERF-04: [Mass Order] Đặt đơn hàng ngẫu nhiên (POST /orders)",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test('[PERF-04] Tạo đơn hàng ngẫu nhiên thành công (201)', function () {",
+                  "    pm.expect(pm.response.code).to.be.oneOf([200, 201]);",
+                  "    const json = pm.response.json();",
+                  "    pm.collectionVariables.set('orderId', json.orderId);",
+                  "    pm.collectionVariables.set('orderTotal', json.total);",
+                  "    pm.collectionVariables.set('idempotencyKey', `perf-idem-${json.orderId}-${Date.now()}`);",
+                  "});",
+                  "pm.test('[NFR-01] Thời gian Transaction tạo đơn & trừ kho < 500ms', function () {",
+                  "    pm.expect(pm.response.responseTime).to.be.below(500);",
+                  "});"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ],
+          "request": {
+            "auth": {
+              "type": "bearer",
+              "bearer": [
+                {
+                  "key": "token",
+                  "value": "{{accessToken}}",
+                  "type": "string"
+                }
+              ]
+            },
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"customerName\": \"{{testUsername}}\",\n  \"items\": [\n    {\n      \"productId\": {{randomProductId}},\n      \"size\": \"{{randomSize}}\",\n      \"qty\": 1,\n      \"topping\": \"{{randomTopping}}\"\n    }\n  ]\n}"
+            },
+            "url": {
+              "raw": "{{baseUrl}}/orders",
+              "host": ["{{baseUrl}}"],
+              "path": ["orders"]
+            }
+          }
+        },
+        {
+          "name": "PERF-05: [Mass Payment] Khởi tạo link thanh toán VNPay (POST /payments)",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test('[PERF-05] Sinh paymentUrl thành công (200/201)', function () {",
+                  "    pm.expect(pm.response.code).to.be.oneOf([200, 201]);",
+                  "});",
+                  "pm.test('[NFR-01] Thời gian ký HMAC-SHA512 & lưu Payment < 500ms', function () {",
+                  "    pm.expect(pm.response.responseTime).to.be.below(500);",
+                  "});"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ],
+          "request": {
+            "auth": {
+              "type": "bearer",
+              "bearer": [
+                {
+                  "key": "token",
+                  "value": "{{accessToken}}",
+                  "type": "string"
+                }
+              ]
+            },
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"orderId\": {{orderId}},\n  \"amount\": {{orderTotal}},\n  \"method\": \"VNPAY_QR\",\n  \"idempotencyKey\": \"{{idempotencyKey}}\",\n  \"customerName\": \"{{testUsername}}\"\n}"
+            },
+            "url": {
+              "raw": "{{baseUrl}}/payments",
+              "host": ["{{baseUrl}}"],
+              "path": ["payments"]
+            }
+          }
+        }
+      ]
+    }
+  ]
+}
